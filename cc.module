@@ -1,0 +1,109 @@
+<?php
+
+/**
+ * Implementation of hook_nodeapi.
+ */
+function cc_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  // Display CC participants and current-user status at top of node display.
+  switch ($op) {
+    case 'view':
+    break;
+    case 'insert':
+    case 'update':
+      $allowed_nodetypes = variable_get('addanother_nodetypes', array());
+      if (isset($allowed_nodetypes[$node->type]) && $allowed_nodetypes[$node->type]) { // TBD: Simplify this expression.
+        if (variable_get('cc_creator', TRUE)) {
+          cc_add($node->nid, $node->uid, TRUE);
+        }
+      }
+    case 'load':
+      // Loading in the node, is this a node we care about?.
+      $allowed_nodetypes = variable_get('addanother_nodetypes', array());
+      if (isset($allowed_nodetypes[$node->type]) && $allowed_nodetypes[$node->type]) { // TBD: Simplify this expression.
+        // Let's add our custom values.
+        if (empty($node->cc_users)) $node->cc_users = array();
+
+        // Load CC'd users.
+        $result = db_query('SELECT uid, mail, status WHERE nid = %d', array($node->nid));
+        while($cc_user = db_fetch_object($result)) {
+          $uid = (empty($cc_user->uid)) ? $cc_user->mail : $cc_user->uid;
+          $node->cc_users[$uid] = $cc_user;
+        }
+      }
+    break;
+  }
+}
+
+/**
+ * Add a user to receive carbon copy mail from a node.
+ *
+ * @param $nid
+ *   ID of node user will be added to.
+ * @param $uid
+ *   User to add, may be a number, object or an email address.
+ * @param $force
+ *   Add a user or email to that node ID, no checks, no questions (faster and less resource intensive, use this for bulk
+ * operations or operations on pre-screened values).
+ */
+function cc_add($nid, $uid, $force = FALSE) {
+  // Verify $nid is a node type we care about.
+  $allowed_nodetypes = variable_get('addanother_nodetypes', array());
+  if (($forced) || (isset($allowed_nodetypes[$node->type]) && $allowed_nodetypes[$node->type])) {
+    
+  }
+}
+
+/**
+ * Admin configuration form.
+ */
+function cc_admin() {
+  $form = array();
+  $form['cc_nodes'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Content type settings'),
+  );
+  $form['cc_nodes']['cc_nodetypes'] = array(
+    '#type' => 'checkboxes',
+    '#title' => t('Enable carbon copy for these content types'),
+    '#options' => node_get_types('names'),
+    '#default_value' => variable_get('cc_nodetypes', array()),
+    '#description' => 'Carbon copy will become available for these content types. Use the options below to control what functionality will be available.',
+  );
+
+  $form['cc_display'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Display options'),
+  );
+  $form['cc_display']['cc_nodeheader'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display the carbon copy forms in the node header.'),
+    '#default_value' => variable_get('cc_nodeheader', TRUE),
+  );
+  $form['cc_display']['cc_nodefooter'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display the carbon copy forms in the node footer.'),
+    '#default_value' => variable_get('cc_nodefooter', TRUE),
+  );
+  $form['cc_display']['cc_tab'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display a "CC" tab with additional options for controlling mail in queue and carbon copied users.'),
+    '#default_value' => variable_get('cc_tab', FALSE),
+  );
+  $form['cc_display']['cc_edit'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display a carbon copy text area on node creation and edit forms to allow additional users or addresses to be manually entered.'),
+    '#default_value' => variable_get('cc_edit', FALSE),
+  );
+
+  $form['cc_preferences'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Preferences'),
+  );
+  $form['cc_preferences']['cc_creator'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Automatically add the node creator to the carbon copy list.'),
+    '#default_value' => variable_get('cc_nodecreator', TRUE),
+  );
+
+  return system_settings_form($form);
+}

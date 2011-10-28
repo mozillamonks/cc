@@ -1,0 +1,121 @@
+<?php
+
+/**
+ * @file
+ * Uninstall and update routines for Carbon copy module.
+ * @author Robin Monks <devlinks@gmail.com>
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function cc_schema() {
+  $schema = array();
+
+  $schema['cc_node'] = array(
+    'fields' => array(
+      'nid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Node ID.'),
+      ),
+      'uid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('User ID'),
+      ),
+      'mail' => array(
+          'type' => 'varchar',
+          'length' => 127,
+          'not null' => TRUE,
+          'description' => t('Email address'),
+      ),
+      'status' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Status code; 0 = inactive, 1 = active.'),
+      ),
+    ),
+  );
+
+  $schema['cc_user'] = array(
+    'fields' => array(
+      'uid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('User ID.'),
+      ),
+      'status' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Status code; 0 = inactive, 1 = active.'),
+      ),
+    ),
+  );
+
+  $schema['cc_queue'] = array(
+    'fields' => array(
+      'ccid' => array(
+          'type' => 'serial',
+          'description' => t('Carbon copy ID.'),
+      ),
+      'nid' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Node ID.'),
+      ),
+      'created' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Item creation date.'),
+      ),
+      'send' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Item send date.'),
+      ),
+      'subject' => array(
+          'type' => 'varchar',
+          'length' => 256,
+          'not null' => TRUE,
+          'description' => t('Email subject'),
+      ),
+      'body' => array(
+          'type' => 'text',
+          'length' => 'medium',
+          'not null' => TRUE,
+          'description' => t('Email body'),
+      ),
+      'status' => array(
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => t('Status code; 0 = inactive, 1 = active.'),
+      ),
+    ),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function cc_install() {
+  drupal_install_schema('cc');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function cc_uninstall() {
+  drupal_uninstall_schema('cc');
+}

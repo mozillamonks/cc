@@ -1,0 +1,3 @@
+name = Carbon copy
+description = "Simple mail queuing and delivery system with easy to use node-based controls."
+core = 6.x
