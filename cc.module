@@ -13,7 +13,7 @@ function cc_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       $allowed_nodetypes = variable_get('addanother_nodetypes', array());
       if (isset($allowed_nodetypes[$node->type]) && $allowed_nodetypes[$node->type]) { // TBD: Simplify this expression.
         if (variable_get('cc_creator', TRUE)) {
-          cc_add($node->nid, $node->uid, TRUE);
+          cc_add($node->nid, $node->uid);
         }
       }
     case 'load':
@@ -24,7 +24,7 @@ function cc_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
         if (empty($node->cc_users)) $node->cc_users = array();
 
         // Load CC'd users.
-        $result = db_query('SELECT uid, mail, status WHERE nid = %d', array($node->nid));
+        $result = db_query('SELECT uid, mail, status FROM {cc_node} WHERE nid = %d', array($node->nid));
         while($cc_user = db_fetch_object($result)) {
           $uid = (empty($cc_user->uid)) ? $cc_user->mail : $cc_user->uid;
           $node->cc_users[$uid] = $cc_user;
@@ -35,22 +35,56 @@ function cc_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
 }
 
 /**
- * Add a user to receive carbon copy mail from a node.
+ * Add a user to the carbon copy list of a node.
  *
  * @param $nid
  *   ID of node user will be added to.
  * @param $uid
  *   User to add, may be a number, object or an email address.
- * @param $force
- *   Add a user or email to that node ID, no checks, no questions (faster and less resource intensive, use this for bulk
- * operations or operations on pre-screened values).
  */
-function cc_add($nid, $uid, $force = FALSE) {
+function cc_add($nid, $uid, $status = 1) {
   // Verify $nid is a node type we care about.
   $allowed_nodetypes = variable_get('addanother_nodetypes', array());
-  if (($forced) || (isset($allowed_nodetypes[$node->type]) && $allowed_nodetypes[$node->type])) {
-    
+  $node = node_load($nid);
+  if ((isset($allowed_nodetypes[$node->type]) && $allowed_nodetypes[$node->type])) {
+    if (!empty($node->cc_users[$uid])) {
+      return FALSE; // Already exists.
+    }
+
+    $userid = 0;
+    if (is_object($uid) && !empty($uid->uid) && !empty($uid->mail)) {
+      $userid = $uid->uid;
+      $email  = $uid->mail;
+    }
+    else if (is_numeric($uid) && $user = user_load($uid)) {
+      $userid = $uid;
+      $email  = $user->mail;
+    }
+    else if (valid_email_address($uid)) {
+      $email = $uid;
+      if ($user = user_load(array('mail' => $uid))) {
+        $userid = $user->uid;
+      }
+    }
+    else {
+      return FALSE;
+    }
+
+    // With better information, let's make sure this isn't a duplicate again.
+    if (($userid > 0 && !empty($node->cc_users[$userid])) || !empty($node->cc_users[$email]) ) {
+      return FALSE; // Already exists.
+    }
+
+    $status = (bool) $status;
+    $query = "INSERT INTO {cc_node} (nid, uid, mail, status) VALUES (%d, %d, %s, %d)";
+    if ($result = db_query($query, array($nid, $userid, $email, $status))) {
+      return TRUE;
+    } else {
+      watchdog('cc', 'MySQL returned error no @errono when added user "@user" to node "@node".',
+               array('@errorno' => db_error(), '@user' => $uid, '@node' => $nid));
+    }
   }
+  return FALSE;
 }
 
 /**
